@@ -27,13 +27,26 @@ articulation_length = 70
 articulation_colour = TOMATO_RED
 
 
-class articulation_circle(klibs.Experiment, klibs.BoundaryInspector):
+class ArticulationCircle(klibs.Experiment, klibs.BoundaryInspector):
+	fixation = None
+	circle = None
+	circle_outline = None
+	target = None
+	lines = []
+	response_circle = None
+	next_trial_circle = None
+	response = None
+	trial_time = None
+	target_displayed = None
+	target_already_on = None
+	start_time = None
+	elapsed = None
+	deg_err = None
+	angle = None
 
 	def __init__(self, *args, **kwargs):
-		super(articulation_circle, self).__init__(*args, **kwargs)
+		super(ArticulationCircle, self).__init__(*args, **kwargs)
 		
-		
-
 	def setup(self):
 		Params.key_maps['articulation_circle_response'] = klibs.KeyMap('articulation_circle_response', [], [], [])
 		self.fixation = kld.FixationCross(25, 4, fill=DARKGREY).render()
@@ -42,7 +55,6 @@ class articulation_circle(klibs.Experiment, klibs.BoundaryInspector):
 		self.circle_outline = kld.Annulus(circle_width + 28, 28, fill=DARKGREY).render()
 		#self.articulation = kld.Ellipse(70, fill=LIGHTGREY)
 		self.target = kld.Asterisk(10, color=TOMATO_RED, stroke=default_stroke).render()
-		self.lines = []
 		for angle in [0, 45, 90, -45]:
 			if angle == 0:
 				angles = [0, 180]
@@ -51,35 +63,21 @@ class articulation_circle(klibs.Experiment, klibs.BoundaryInspector):
 			if angle == 90:
 				angles = [90, 270]
 			if angle == -45:
-				angles = [135, 325]		
+				angles = [135, 325]
 			line = self.line(angle, articulation_length, [(64,64,64), default_stroke]).render()
 			for a in angles:
 				self.lines.append([line, util.point_pos(Params.screen_c, circle_width / 2.0, a)])
-			
-# 		self.line_0 = 
-# 		self.line_45 = self.line(45, articulation_length, [(64,64,64), default_stroke]).render()
-# 		self.line_90 = self.line(0, articulation_length, [(64,64,64), default_stroke]).render()
-# 		self.line_135 = self.line(-45, articulation_length, [(64,64,64), default_stroke]).render()
-# 		
-		#self.line_0 = kld.NewNewLine(articulation_length, DARKGREY, default_stroke, 90)
-		#self.line_45 = kld.NewNewLine(articulation_length, DARKGREY, default_stroke, 45)
-		#self.line_90 = kld.NewNewLine(articulation_length, DARKGREY, default_stroke, 0)
-		#self.line_135 = kld.NewNewLine(articulation_length, DARKGREY, default_stroke, 135)
-		
-		
 		self.response_circle = kld.Annulus(circle_width + 24, 24, fill=GREY)
 		
-		self.nexttrial_circle = kld.Ellipse(20, fill=DARKGREY)
+		self.next_trial_circle = kld.Ellipse(20, fill=DARKGREY)
 		self.add_boundary("center", [Params.screen_c, 20], CIRCLE_BOUNDARY)
-		
-		
+
 	def block(self):
 		pass
 
 	def setup_response_collector(self):
-		
 		self.rc.display_callback = self.articulation_callback
-		self.rc.terminate_after = [10]
+		self.rc.terminate_after = [10, TK_S]
 		self.rc.uses([RC_COLORSELECT])
 		self.rc.color_listener.interrupts = True
 		self.rc.color_listener.add_boundary("color ring", [Params.screen_c, self.response_circle.radius - 32, self.response_circle.radius], "anulus")
@@ -104,7 +102,6 @@ class articulation_circle(klibs.Experiment, klibs.BoundaryInspector):
 		self.fill(WHITE)
 		self.blit(self.fixation, 5, Params.screen_c)
 		self.flip()
-
 		
 	def trial(self):
 
@@ -146,9 +143,15 @@ class articulation_circle(klibs.Experiment, klibs.BoundaryInspector):
 		self.blit(self.fixation, 5, Params.screen_c)
 		self.blit(self.response_circle, 5, Params.screen_c)
 		self.rc.collect()
+		self.fill()
+		self.flip()
 		
 		self.response = self.rc.color_listener.response(True, False)
-		self.deg_err = self.response if self.response < 180 else self.response - 360
+
+		try:
+			self.deg_err = self.response if self.response < 180 else self.response - 360
+		except TypeError:
+			self.deg_err = NA
 		
 		self.click_to_continue()
 		
@@ -207,7 +210,6 @@ class articulation_circle(klibs.Experiment, klibs.BoundaryInspector):
 			print "total target on-time: %.3f" % (time.time() - self.target_ontime)
 			self.target_already_on = False
 
-
 	def trial_clean_up(self):
 		pass
 
@@ -219,7 +221,7 @@ class articulation_circle(klibs.Experiment, klibs.BoundaryInspector):
 		
 	def click_to_continue(self):
 		self.fill(WHITE)
-		self.blit(self.nexttrial_circle, 5, Params.screen_c)
+		self.blit(self.next_trial_circle, 5, Params.screen_c)
 		#self.blit(self.articulation, 5, Params.screen_c)
 		#self.blit(self.line_0, 5, Params.screen_c)
 		#self.blit(self.line_45, 5, Params.screen_c)
