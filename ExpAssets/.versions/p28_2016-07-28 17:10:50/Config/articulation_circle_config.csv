@@ -1,0 +1,5 @@
+# Config file for articulation_circle
+circle_type.param, duration.param
+none,50
+plain,100
+articulated,
