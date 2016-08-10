@@ -21,9 +21,9 @@ WHITE = [255,255,255]
 BLACK = [0,0,0]
 TOMATO_RED = [255,99,71]
 
-circle_width = 650
-default_stroke = 5
-articulation_length = 70
+circle_width = 15
+default_stroke = 0.1
+ring_stroke = 0.55
 articulation_colour = TOMATO_RED
 
 
@@ -48,15 +48,24 @@ class ArticulationCircle(klibs.Experiment, klibs.BoundaryInspector):
 
 	def __init__(self, *args, **kwargs):
 		super(ArticulationCircle, self).__init__(*args, **kwargs)
+		self.circle_width = util.deg_to_px(circle_width)
+		self.ring_width = util.deg_to_px(circle_width + ring_stroke)
+		self.ring_stroke = util.deg_to_px(ring_stroke)
+		self.articulation_len = util.deg_to_px(3 * (ring_stroke + default_stroke))
+		self.default_stroke = util.deg_to_px(default_stroke)
+		self.fixation_width = util.deg_to_px(0.65)
+		self.target_width = util.deg_to_px(0.25)
+		self.nexttrial_width = util.deg_to_px(0.5)
+		
 		
 	def setup(self):	
 		Params.key_maps['articulation_circle_response'] = klibs.KeyMap('articulation_circle_response', [], [], [])
 		
-		self.fixation = kld.FixationCross(25, 4, fill=DARKGREY).render()
-		self.fixation_light = kld.FixationCross(25, 4, fill=LIGHTGREY).render()
+		self.fixation = kld.FixationCross(self.fixation_width, self.default_stroke, fill=DARKGREY).render()
+		self.fixation_light = kld.FixationCross(self.fixation_width, self.default_stroke, fill=LIGHTGREY).render()
 		
-		self.circle = kld.Annulus(circle_width + 24, 24, fill=WHITE).render()
-		self.circle_outline = kld.Annulus(circle_width + 28, 28, fill=DARKGREY).render()
+		self.circle = kld.Annulus(self.ring_width, self.ring_stroke, fill=WHITE).render()
+		self.circle_outline = kld.Annulus(self.ring_width + self.default_stroke, self.ring_stroke + self.default_stroke, fill=DARKGREY).render()
 		
 		for angle in [0, 45, 90, -45]:
 			if angle == 0:
@@ -67,16 +76,26 @@ class ArticulationCircle(klibs.Experiment, klibs.BoundaryInspector):
 				angles = [90, 270]
 			if angle == -45:
 				angles = [135, 325]
-			line = self.line(angle, articulation_length, [(64,64,64), default_stroke]).render()
+			line = self.line(angle, self.articulation_len, [(64,64,64), self.default_stroke]).render()
 			for a in angles:
-				self.lines.append([line, util.point_pos(Params.screen_c, circle_width / 2.0, a)])
+				self.lines.append([line, util.point_pos(Params.screen_c, self.circle_width / 2.0, a)])
 				
-		self.target = kld.Asterisk(10, color=TOMATO_RED, stroke=default_stroke).render()
+		self.target = kld.Asterisk(self.target_width, color=TOMATO_RED, stroke=self.default_stroke).render()
 					
-		self.response_ring = kld.Annulus(circle_width + 24, 24, fill=GREY)
+		self.response_ring = kld.Annulus(self.ring_width, self.ring_stroke, fill=GREY)
 		
-		self.next_trial_circle = kld.Ellipse(20, fill=DARKGREY)
-		self.add_boundary("center", [Params.screen_c, 20], CIRCLE_BOUNDARY)
+		self.next_trial_circle = kld.Ellipse(self.nexttrial_width, fill=DARKGREY)
+		self.add_boundary("center", [Params.screen_c, self.nexttrial_width], CIRCLE_BOUNDARY)
+		
+		# sizes
+		
+		print("circle_width:", util.px_to_deg(650))
+		print("ring_thickness:", util.px_to_deg(24))
+		print("outer_ring_thickness:", util.px_to_deg(28))
+		print("target_size:", util.px_to_deg(10))
+		print("default_stroke:", util.px_to_deg(5))
+		print("articulation_length:", util.px_to_deg(70))
+		print("")
 		
 
 	def block(self):
@@ -87,7 +106,7 @@ class ArticulationCircle(klibs.Experiment, klibs.BoundaryInspector):
 		self.rc.terminate_after = [10, TK_S]
 		self.rc.uses([RC_COLORSELECT])
 		self.rc.color_listener.interrupts = True
-		self.rc.color_listener.add_boundary("color ring", [Params.screen_c, self.response_ring.radius - 32, self.response_ring.radius], "anulus")
+		self.rc.color_listener.add_boundary("color ring", [Params.screen_c, self.response_ring.radius - self.ring_stroke, self.response_ring.radius], "anulus")
 		self.rc.color_listener.set_target(self.response_ring, Params.screen_c, 5)
 
 	def trial_prep(self):
@@ -189,7 +208,7 @@ class ArticulationCircle(klibs.Experiment, klibs.BoundaryInspector):
 			self.circle_time = time.time() # for debug
 		
 		if target:
-			line_pos = util.point_pos(Params.screen_c, (circle_width / 2), self.angle)
+			line_pos = util.point_pos(Params.screen_c, (self.circle_width / 2), self.angle)
 			self.blit(self.target, 5, line_pos)
 			self.target_displayed = "yes"
 		self.flip()
