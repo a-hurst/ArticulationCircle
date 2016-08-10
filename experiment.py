@@ -50,6 +50,7 @@ class ArticulationCircle(klibs.Experiment, klibs.BoundaryInspector):
 	def setup(self):
 		Params.key_maps['articulation_circle_response'] = klibs.KeyMap('articulation_circle_response', [], [], [])
 		self.fixation = kld.FixationCross(25, 4, fill=DARKGREY).render()
+		self.fixation_light = kld.FixationCross(25, 4, fill=LIGHTGREY).render()
 		#self.circle = kld.Ellipse(circle_width, stroke=[default_stroke, DARKGREY, 2])
 		self.circle = kld.Annulus(circle_width + 24, 24, fill=WHITE).render()
 		self.circle_outline = kld.Annulus(circle_width + 28, 28, fill=DARKGREY).render()
@@ -89,8 +90,9 @@ class ArticulationCircle(klibs.Experiment, klibs.BoundaryInspector):
 		events.append([events[-1][0] + 600, 'target_on']) 
 		events.append([events[-1][0] + int(self.duration), 'target_off'])
 		#events.append([events[-1][0] + 500, 'target_off']) # for debugging target location
-		events.append([events[-1][0] + 600, 'circle_off'])
-		events.append([events[-1][0] + 800, 'response_circle_on'])
+		#events.append([events[-1][0] + 600, 'circle_off'])
+		events.append([events[-1][0] + 1000, 'response_circle_on'])
+		#events.append([events[-1][0] + 800, 'response_circle_on'])
 		for e in events:
 			Params.clock.register_event(ET(e[1], e[0]))
 			
@@ -100,7 +102,7 @@ class ArticulationCircle(klibs.Experiment, klibs.BoundaryInspector):
 		
 		# enter trial with screen already at desired state
 		self.fill(WHITE)
-		self.blit(self.fixation, 5, Params.screen_c)
+		self.blit(self.fixation_light, 5, Params.screen_c)
 		self.flip()
 		
 	def trial(self):
@@ -112,9 +114,11 @@ class ArticulationCircle(klibs.Experiment, klibs.BoundaryInspector):
 		print(self.circle_type, self.duration)
 
 		while self.evi.before('circle_on', True):
-			self.display_refresh()
+			self.fill(WHITE)
+			self.blit(self.fixation_light, 5, Params.screen_c)
+			self.flip()
 			
-		while self.evi.before('circle_off', True):
+		while self.evi.before('response_circle_on', True):
 			self.start_time = time.time()
 			target_on = self.evi.after('target_on', True) and self.evi.before('target_off', True)
 			#target_on = 1 < (self.start_time - self.trial_time) <= 1.050
@@ -134,8 +138,10 @@ class ArticulationCircle(klibs.Experiment, klibs.BoundaryInspector):
 				print "total: %.3f" % (self.elapsed)
 					
 		
-		while self.evi.before('response_circle_on', True):
-			self.display_refresh()
+		#while self.evi.before('response_circle_on', True):
+		#	self.display_refresh()
+		
+		self.clear(WHITE)
 		
 		self.blit(self.fixation, 5, Params.screen_c)
 		self.blit(self.response_circle, 5, Params.screen_c) # necessary due to some weird antialiasing issue.
@@ -143,8 +149,6 @@ class ArticulationCircle(klibs.Experiment, klibs.BoundaryInspector):
 		self.blit(self.fixation, 5, Params.screen_c)
 		self.blit(self.response_circle, 5, Params.screen_c)
 		self.rc.collect()
-		self.fill()
-		self.flip()
 		
 		self.response = self.rc.color_listener.response(True, False)
 
