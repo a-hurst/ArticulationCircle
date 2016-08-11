@@ -9,6 +9,7 @@ from klibs import KLUtilities as util
 from klibs.KLConstants import *
 from klibs.KLEventInterface import EventTicket as ET
 from klibs import KLNumpySurface as npsurf
+import math
 import random
 import time # for debugging missing targets
 import aggdraw # only because lines aren't working
@@ -19,12 +20,13 @@ DARKGREY = [64,64,64]
 LIGHTGREY = [192,192,192]
 WHITE = [255,255,255]
 BLACK = [0,0,0]
+BLACK_LOW = [0,0,0,24]
 TOMATO_RED = [255,99,71]
+TOMATO_RED_LOW = [255,99,71,32]
 
 circle_width = 15
 default_stroke = 0.1
 ring_stroke = 0.55
-articulation_colour = TOMATO_RED
 
 
 class ArticulationCircle(klibs.Experiment, klibs.BoundaryInspector):	
@@ -52,9 +54,11 @@ class ArticulationCircle(klibs.Experiment, klibs.BoundaryInspector):
 		self.ring_width = util.deg_to_px(circle_width + ring_stroke)
 		self.ring_stroke = util.deg_to_px(ring_stroke)
 		self.articulation_len = util.deg_to_px(3 * (ring_stroke + default_stroke))
-		self.default_stroke = util.deg_to_px(default_stroke)
+		# ensure default stroke isn't lopsided by rounding it up to nearest multiple of 2
+		self.default_stroke = int(math.ceil(float(util.deg_to_px(default_stroke)) / 2.0) * 2)
 		self.fixation_width = util.deg_to_px(0.65)
 		self.target_width = util.deg_to_px(0.25)
+		# self.target_width_small = util.deg_to_px(0.15)
 		self.nexttrial_width = util.deg_to_px(0.5)
 		
 		
@@ -80,7 +84,10 @@ class ArticulationCircle(klibs.Experiment, klibs.BoundaryInspector):
 			for a in angles:
 				self.lines.append([line, util.point_pos(Params.screen_c, self.circle_width / 2.0, a)])
 				
-		self.target = kld.Asterisk(self.target_width, color=TOMATO_RED, stroke=self.default_stroke).render()
+		self.target_full_m = kld.Asterisk(self.target_width, color=BLACK, stroke=self.default_stroke).render()
+		#self.target_full_s = kld.Asterisk(self.target_width_small, color=TOMATO_RED, stroke=self.default_stroke).render()
+		self.target_low_m = kld.Asterisk(self.target_width, color=BLACK_LOW, stroke=self.default_stroke).render()
+		#self.target_low_s = kld.Asterisk(self.target_width_small, color=TOMATO_RED_LOW, stroke=self.default_stroke).render()
 					
 		self.response_ring = kld.Annulus(self.ring_width, self.ring_stroke, fill=GREY)
 		
@@ -96,6 +103,14 @@ class ArticulationCircle(klibs.Experiment, klibs.BoundaryInspector):
 		print("default_stroke:", util.px_to_deg(5))
 		print("articulation_length:", util.px_to_deg(70))
 		print("")
+		print(self.circle_width)
+		print(self.ring_width)
+		print(self.ring_stroke)
+		print(self.articulation_len)
+		print(self.default_stroke, util.px_to_deg(self.default_stroke))
+		print(self.fixation_width)
+		print(self.target_width)
+		print(self.nexttrial_width)
 		
 
 	def block(self):
@@ -119,6 +134,12 @@ class ArticulationCircle(klibs.Experiment, klibs.BoundaryInspector):
 			
 		self.angle = random.choice(range(0, 359, 1))
 		self.response_ring.rotation = self.angle
+			
+		#if self.opacity == "full":
+		#	self.target = self.target_full_m if self.size == "med" else self.target_full_s
+		#else:
+		#	self.target = self.target_low_m if self.size == "med" else self.target_low_s
+		self.target = self.target_full_m if self.opacity == "full" else self.target_low_m	
 		self.target_displayed = "no"
 		
 		# enter trial with screen already at desired state
@@ -131,7 +152,8 @@ class ArticulationCircle(klibs.Experiment, klibs.BoundaryInspector):
 		self.trial_time = time.time()
 		self.target_already_on = False
 		
-		print(self.circle_type, self.duration)
+		print("")
+		print(self.circle_type, self.duration, self.opacity)
 
 		while self.evi.before('circle_on', True):
 			
@@ -216,10 +238,10 @@ class ArticulationCircle(klibs.Experiment, klibs.BoundaryInspector):
 	
 		if target and not self.target_already_on:
 			self.target_ontime = time.time()
-			print "target on! %.3f" % (self.target_ontime - self.trial_time)
+			print "target on: %.3f" % (self.target_ontime - self.trial_time)
 			self.target_already_on = True	
 		if not target and self.target_already_on:
-			print "total target on-time: %.3f" % (time.time() - self.target_ontime)
+			print "total target on-time: %.3f \n" % (time.time() - self.target_ontime)
 			self.target_already_on = False
 
 
