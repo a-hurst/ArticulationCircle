@@ -20,7 +20,7 @@ DARKGREY = [64,64,64]
 LIGHTGREY = [192,192,192]
 WHITE = [255,255,255]
 BLACK = [0,0,0]
-BLACK_MED = [0,0,0,64]
+BLACK_MED = [0,0,0,32]
 BLACK_LOW = [0,0,0,24]
 TOMATO_RED = [255,99,71]
 TOMATO_RED_LOW = [255,99,71,32]
@@ -134,7 +134,7 @@ class ArticulationCircle(klibs.Experiment, klibs.BoundaryInspector):
 		for e in events:
 			Params.clock.register_event(ET(e[1], e[0]))
 			
-		self.angle = random.choice(range(0, 359, 1))
+		self.angle = random.choice(range(0, 360, 1))
 		self.response_ring.rotation = self.angle
 			
 		#if self.opacity == "full":
