@@ -40,8 +40,8 @@ cue_back_size = 1,  # deg of visual angle
 multi_session_project = True
 collect_demographics = False
 practicing = False
-trials_per_block = 24
-blocks_per_experiment = 6
+trials_per_block = 18
+blocks_per_experiment = 8
 trials_per_participant = 0
 table_defaults = {}
 #

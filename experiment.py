@@ -20,11 +20,12 @@ DARKGREY = [64,64,64]
 LIGHTGREY = [192,192,192]
 WHITE = [255,255,255]
 BLACK = [0,0,0]
+BLACK_MED = [0,0,0,64]
 BLACK_LOW = [0,0,0,24]
 TOMATO_RED = [255,99,71]
 TOMATO_RED_LOW = [255,99,71,32]
 
-circle_width = 15
+circle_width = 16
 default_stroke = 0.1
 ring_stroke = 0.55
 
@@ -86,6 +87,7 @@ class ArticulationCircle(klibs.Experiment, klibs.BoundaryInspector):
 				
 		self.target_full_m = kld.Asterisk(self.target_width, color=BLACK, stroke=self.default_stroke).render()
 		#self.target_full_s = kld.Asterisk(self.target_width_small, color=TOMATO_RED, stroke=self.default_stroke).render()
+		self.target_med_m = kld.Asterisk(self.target_width, color=BLACK_MED, stroke=self.default_stroke).render()
 		self.target_low_m = kld.Asterisk(self.target_width, color=BLACK_LOW, stroke=self.default_stroke).render()
 		#self.target_low_s = kld.Asterisk(self.target_width_small, color=TOMATO_RED_LOW, stroke=self.default_stroke).render()
 					
@@ -139,7 +141,7 @@ class ArticulationCircle(klibs.Experiment, klibs.BoundaryInspector):
 		#	self.target = self.target_full_m if self.size == "med" else self.target_full_s
 		#else:
 		#	self.target = self.target_low_m if self.size == "med" else self.target_low_s
-		self.target = self.target_full_m if self.opacity == "full" else self.target_low_m	
+		self.target = self.target_full_m if self.opacity == "full" else self.target_med_m if self.opacity == "med" else self.target_low_m	
 		self.target_displayed = "no"
 		
 		# enter trial with screen already at desired state
@@ -185,6 +187,8 @@ class ArticulationCircle(klibs.Experiment, klibs.BoundaryInspector):
 		self.blit(self.fixation, 5, Params.screen_c)
 		self.blit(self.response_ring, 5, Params.screen_c) # necessary due to some weird antialiasing issue.
 		self.flip()
+		if self.debug_mode:
+			self.any_key() # to debug antialiasing issue with response ring
 		self.blit(self.fixation, 5, Params.screen_c)
 		self.blit(self.response_ring, 5, Params.screen_c)
 		self.response_starttime = time.time()
@@ -206,6 +210,7 @@ class ArticulationCircle(klibs.Experiment, klibs.BoundaryInspector):
 			"block_num": Params.block_number,
 			"trial_num": Params.trial_number,
 			"circle_type": self.circle_type,
+			"opacity": self.opacity,
 			"duration": self.duration,
 			"rt": self.response_rt, #self.rc.color_listener.response(False, True),
 			"target_displayed": self.target_displayed,

@@ -1,5 +1,5 @@
 # Config file for articulation_circle
 circle_type.param, duration.param, opacity.param
 none,50,low
-plain,100,full
-articulated,,
+plain,100,med
+articulated,,full
