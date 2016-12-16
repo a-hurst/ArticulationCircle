@@ -1,5 +1,5 @@
 # Config file for articulation_circle
-circle_type.param, duration.param
+circle_type.factor, duration.factor
 none,50
 plain,100
 articulated,

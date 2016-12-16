@@ -1,4 +1,6 @@
 **/.DS_STORE
+**/.DS_Store
+.DS_Store
 .git_ignore
 ExpAssets/*.db
 ExpAssets/*.db.backup
@@ -7,4 +9,4 @@ ExpAssets/EDF/**
 ExpAssets/.versions/**
 ExpAssets/Local
 ExpAssets/Local/**
-**/.pyc
+**/*.pyc
