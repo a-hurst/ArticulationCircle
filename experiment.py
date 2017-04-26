@@ -128,9 +128,13 @@ class ArticulationCircle(klibs.Experiment, klibs.BoundaryInspector):
 
 	def trial_prep(self):
 		events = [[400, 'circle_on']]
+		print("prep circle_on")
 		events.append([events[-1][0] + 600, 'target_on']) 
+		print("prep target_on")
 		events.append([events[-1][0] + int(self.duration), 'target_off'])
+		print("prep target_off")
 		events.append([events[-1][0] + 1000, 'response_circle_on'])
+		print("prep response_circle)")
 		for e in events:
 			Params.clock.register_event(ET(e[1], e[0]))
 			
