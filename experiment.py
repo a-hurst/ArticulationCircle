@@ -21,17 +21,17 @@ import time # for debugging missing targets
 import aggdraw # only because lines aren't working
 
 
-GREY = [128,128,128]
-DARKGREY = [64,64,64]
-LIGHTGREY = [192,192,192]
-WHITE = [255,255,255]
-BLACK = [0,0,0]
+GREY = [128,128,128,255]
+DARKGREY = [64,64,64,255]
+LIGHTGREY = [192,192,192,255]
+WHITE = [255,255,255,255]
+BLACK = [0,0,0,255]
 BLACK_MED = [0,0,0,32]
 BLACK_LOW = [0,0,0,24]
-TOMATO_RED = [255,99,71]
+TOMATO_RED = [255,99,71,255]
 TOMATO_RED_LOW = [255,99,71,32]
 
-circle_width = 16
+circle_radius = 8
 default_stroke = 0.1
 ring_stroke = 0.55
 
@@ -62,12 +62,16 @@ class ArticulationCircle(Experiment, BoundaryInspector):
     def setup(self):    
         P.key_maps['articulation_circle_response'] = KeyMap('articulation_circle_response', [], [], [])
         
-        self.circle_width = util.deg_to_px(circle_width)
-        self.ring_width = util.deg_to_px(circle_width + ring_stroke)
-        self.ring_stroke = util.deg_to_px(ring_stroke)
-        self.articulation_len = util.deg_to_px(3 * (ring_stroke + default_stroke))
+        self.circle_radius = util.deg_to_px(circle_radius)
+        self.ring_radius   = util.deg_to_px(circle_radius + ring_stroke/2)
+        self.circle_width  = self.circle_radius * 2
+        self.ring_width    = self.ring_radius * 2
+        
         # ensure default stroke isn't lopsided by rounding it up to nearest multiple of 2
         self.default_stroke = int(math.ceil(float(util.deg_to_px(default_stroke)) / 2.0) * 2)
+        self.ring_stroke = util.deg_to_px(ring_stroke)
+        self.articulation_len = util.deg_to_px(3 * (ring_stroke + default_stroke))
+        
         self.fixation_width = util.deg_to_px(0.65)
         self.target_width = util.deg_to_px(0.25)
         self.nexttrial_width = util.deg_to_px(0.5)
@@ -102,11 +106,12 @@ class ArticulationCircle(Experiment, BoundaryInspector):
         
         # sizes
         
-        print("circle_width:", util.px_to_deg(650))
-        print("ring_thickness:", util.px_to_deg(24))
-        print("outer_ring_thickness:", util.px_to_deg(28))
+        print("circle_width:", self.circle_width)
+        print("ring_width:", self.ring_width)
+        print("ring_thickness:", self.ring_stroke)
+        print("outer_ring_thickness:", self.ring_stroke + self.default_stroke)
         print("target_size:", util.px_to_deg(10))
-        print("default_stroke:", util.px_to_deg(5))
+        print("default_stroke:", self.default_stroke)
         print("articulation_length:", util.px_to_deg(70))
         print("")
 
@@ -118,7 +123,7 @@ class ArticulationCircle(Experiment, BoundaryInspector):
         self.rc.terminate_after = [10, TK_S]
         self.rc.uses([RC_COLORSELECT])
         self.rc.color_listener.interrupts = True
-        self.rc.color_listener.add_boundary("color ring", [P.screen_c, self.response_ring.radius - self.ring_stroke, self.response_ring.radius], ANNULUS_BOUNDARY)
+        self.rc.color_listener.add_boundary("color ring", [P.screen_c, self.ring_radius - self.ring_stroke, self.ring_radius], ANNULUS_BOUNDARY)
         self.rc.color_listener.set_target(self.response_ring, P.screen_c, 5)
 
     def trial_prep(self):
@@ -176,7 +181,7 @@ class ArticulationCircle(Experiment, BoundaryInspector):
         blit(self.fixation, 5, P.screen_c)
         blit(self.response_ring, 5, P.screen_c) # necessary due to some weird antialiasing issue.
         flip()
-        if self.debug_mode:
+        if P.development_mode:
             any_key() # to debug antialiasing issue with response ring
         blit(self.fixation, 5, P.screen_c)
         blit(self.response_ring, 5, P.screen_c)
@@ -188,7 +193,7 @@ class ArticulationCircle(Experiment, BoundaryInspector):
 
         try:
             self.deg_err = self.response if self.response < 180 else self.response - 360
-            self.response_loc = self.angle + self.deg_err
+            self.response_loc = (self.angle + self.deg_err) % 360
         except TypeError:
             self.deg_err = NA
             self.response_loc = NA
@@ -224,7 +229,7 @@ class ArticulationCircle(Experiment, BoundaryInspector):
             self.circle_time = time.time() # for debug
         
         if target:
-            line_pos = util.point_pos(P.screen_c, (self.circle_width / 2), self.angle)
+            line_pos = util.point_pos(P.screen_c, self.circle_radius, self.angle)
             blit(self.target, 5, line_pos)
             self.target_displayed = "yes"
         flip()
