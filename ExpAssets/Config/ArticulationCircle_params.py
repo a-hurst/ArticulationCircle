@@ -81,6 +81,7 @@ demographic_questions = [
 #########################################
 # PROJECT-SPECIFIC VARS
 #########################################
+view_distance = 57
 fixation_top = [None, None]
 fixation_central = [None, None]
 fixation_bottom = [None, None]

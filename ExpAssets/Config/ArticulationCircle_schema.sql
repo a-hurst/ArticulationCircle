@@ -70,7 +70,7 @@ CREATE TABLE trials (
 	opacity text not null,
 	duration text not null,
 	rt text not null,
-	target_displayed text not null,
+	target_refreshes integer not null,
 	target_loc text not null,
 	response_loc text not null,
 	deg_err text not null

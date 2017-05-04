@@ -26,9 +26,9 @@ GREY = [128,128,128,255]
 DARKGREY = [64,64,64,255]
 LIGHTGREY = [192,192,192,255]
 WHITE = [255,255,255,255]
-BLACK = [0,0,0,255]
-BLACK_MED = [0,0,0,32]
-BLACK_LOW = [0,0,0,24]
+BLACK_HIGH = [0,0,0,64]
+BLACK_MED  = [0,0,0,32]
+BLACK_LOW  = [0,0,0,24]
 TOMATO_RED = [255,99,71,255]
 TOMATO_RED_LOW = [255,99,71,32]
 
@@ -47,7 +47,6 @@ class ArticulationCircle(Experiment, BoundaryInspector):
     next_trial_circle = None
     response = None
     trial_time = None
-    target_displayed = None
     target_already_on = None
     start_time = None
     elapsed = None
@@ -96,18 +95,19 @@ class ArticulationCircle(Experiment, BoundaryInspector):
             for a in angles:
                 self.lines.append([line, util.point_pos(P.screen_c, self.circle_width / 2.0, a)])
                 
-        self.target_full = kld.Asterisk(self.target_width, color=BLACK,     stroke=self.default_stroke).render()
-        self.target_med  = kld.Asterisk(self.target_width, color=BLACK_MED, stroke=self.default_stroke).render()
-        self.target_low  = kld.Asterisk(self.target_width, color=BLACK_LOW, stroke=self.default_stroke).render()
+        self.target_high = kld.Asterisk(self.target_width, color=BLACK_HIGH, stroke=self.default_stroke).render()
+        self.target_med  = kld.Asterisk(self.target_width, color=BLACK_MED,  stroke=self.default_stroke).render()
+        self.target_low  = kld.Asterisk(self.target_width, color=BLACK_LOW,  stroke=self.default_stroke).render()
         
         self.response_ring = kld.Annulus(self.ring_width, self.ring_stroke, fill=GREY)
         
         self.next_trial_circle = kld.Ellipse(self.nexttrial_width, fill=DARKGREY)
         self.add_boundary("center", [P.screen_c, self.nexttrial_width], CIRCLE_BOUNDARY)
         
+        self.fliptime = (self.get_refresh(rep=30) + self.get_refresh(rep=30) + self.get_refresh(rep=30))/3
         print ""
-        print "Refresh Rate: {:.1f} Hz".format(self.get_refresh(hertz=True))
-        print "Time per refresh: {:.2f}ms".format(self.get_refresh())
+        print "Refresh Rate: {:.1f} Hz".format(1000/self.fliptime)
+        print "Time per refresh: {:.2f}ms".format(self.fliptime)
         print ""
         
         # sizes
@@ -133,7 +133,7 @@ class ArticulationCircle(Experiment, BoundaryInspector):
         self.rc.color_listener.set_target(self.response_ring, P.screen_c, 5)
 
     def trial_prep(self):
-        events = [[400, 'circle_on']]
+        events = [[400-self.fliptime, 'circle_on']]
         events.append([events[-1][0] + 600, 'target_on']) 
         events.append([events[-1][0] + int(self.duration), 'target_off'])
         events.append([events[-1][0] + 1000, 'response_circle_on'])
@@ -142,8 +142,8 @@ class ArticulationCircle(Experiment, BoundaryInspector):
             
         self.angle = random.choice(range(0, 360, 1))
         self.response_ring.rotation = self.angle
-        self.target = self.target_full if self.opacity == "full" else self.target_med if self.opacity == "med" else self.target_low
-        self.target_displayed = "no"
+        self.target = self.target_high if self.opacity == "high" else self.target_med if self.opacity == "med" else self.target_low
+        self.circle_already_on = False
         
         # enter trial with screen already at desired state
         fill(WHITE)
@@ -157,31 +157,7 @@ class ArticulationCircle(Experiment, BoundaryInspector):
         self.target_already_on = False
         
         print(self.circle_type, self.duration, self.opacity)
-        
-        #if P.development_mode:
-        #    ring_rotation = 0
-        #    debugging = True
-        #    while debugging:
-        #        fill(WHITE)
-        #        debug_ring = kld.Annulus(self.ring_width, self.ring_stroke, rotation=ring_rotation, fill=GREY)
-        #        angle_num  = message("{0}".format(ring_rotation%360), "alert", blit_txt=False)
-        #        blit(debug_ring, 5, P.screen_c)
-        #        blit(angle_num, 5, P.screen_c)
-        #        flip()
-        #        events = util.pump(True)
-        #        for e in events:
-        #            if e.type == sdl2.SDL_KEYDOWN:
-        #                keypress = e.key.keysym.sym
-        #                if keypress == sdl2.SDLK_RIGHT:
-        #                    ring_rotation += 1
-        #                elif keypress == sdl2.SDLK_LEFT:
-        #                    ring_rotation -= 1
-        #                elif keypress == sdl2.SDLK_x:
-        #                    debugging = False
-        #                elif keypress == sdl2.SDLK_q:
-        #                    self.quit()
-        #                    debugging = False
-                
+                        
 
         while self.evm.before('circle_on', True):
             
@@ -239,7 +215,7 @@ class ArticulationCircle(Experiment, BoundaryInspector):
             "opacity": self.opacity,
             "duration": self.duration,
             "rt": self.response_rt, #self.rc.color_listener.response(False, True),
-            "target_displayed": self.target_displayed,
+            "target_refreshes": self.target_refreshes,
             "target_loc": self.angle,
             "response_loc": self.response_loc,
             "deg_err": self.deg_err
@@ -263,11 +239,13 @@ class ArticulationCircle(Experiment, BoundaryInspector):
         if target:
             target_pos = util.point_pos(P.screen_c, self.circle_radius, self.angle)
             blit(self.target, 5, target_pos)
-            self.target_displayed = "yes"
             self.target_refreshes += 1
         flip()
         
-    
+        if circle and not self.circle_already_on:
+            self.circle_ontime = time.time()
+            print "circle on! %.3f" % (self.circle_ontime - self.trial_time)
+            self.circle_already_on = True
         if target and not self.target_already_on:
             self.target_ontime = time.time()
             print "target on! %.3f" % (self.target_ontime - self.trial_time)
@@ -310,11 +288,16 @@ class ArticulationCircle(Experiment, BoundaryInspector):
                         
         util.hide_mouse_cursor()
         
-    def get_refresh(self, hertz=False):
+    def get_refresh(self, hertz=False, rep=50):
         refreshes_start = time.time()
         refreshes = 0
-        while refreshes <= 50:
+        while refreshes <= rep:
             fill(WHITE)
+            blit(self.fixation, 5, P.screen_c)
+            for l in self.lines:
+                blit(l[0], 5, l[1])
+            blit(self.circle_outline, 5, P.screen_c)
+            blit(self.circle, 5, P.screen_c)
             flip()
             refreshes += 1
         
