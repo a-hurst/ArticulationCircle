@@ -13,6 +13,7 @@ from klibs.KLGraphics.KLNumpySurface import NumpySurface as npsurf
 from klibs.KLEventInterface import TrialEventTicket as ET
 #from klibs.KLEventInterface import EventManager as evm
 from klibs.KLBoundary import BoundaryInspector
+from klibs.KLCommunication import message
 from klibs import Experiment
 
 import random
@@ -69,8 +70,8 @@ class ArticulationCircle(Experiment, BoundaryInspector):
         
         # ensure default stroke isn't lopsided by rounding it up to nearest multiple of 2
         self.default_stroke = int(math.ceil(float(util.deg_to_px(default_stroke)) / 2.0) * 2)
-        self.ring_stroke = util.deg_to_px(ring_stroke)
-        self.articulation_len = util.deg_to_px(3 * (ring_stroke + default_stroke))
+        self.ring_stroke    = int(math.ceil(float(util.deg_to_px(ring_stroke)) / 2.0) * 2)
+        self.articulation_len = 3 * (self.ring_stroke + self.default_stroke)
         
         self.fixation_width = util.deg_to_px(0.65)
         self.target_width = util.deg_to_px(0.25)
@@ -103,6 +104,11 @@ class ArticulationCircle(Experiment, BoundaryInspector):
         
         self.next_trial_circle = kld.Ellipse(self.nexttrial_width, fill=DARKGREY)
         self.add_boundary("center", [P.screen_c, self.nexttrial_width], CIRCLE_BOUNDARY)
+        
+        print ""
+        print "Refresh Rate: {:.1f} Hz".format(self.get_refresh(hertz=True))
+        print "Time per refresh: {:.2f}ms".format(self.get_refresh())
+        print ""
         
         # sizes
         
@@ -147,9 +153,35 @@ class ArticulationCircle(Experiment, BoundaryInspector):
         
     def trial(self):
         self.trial_time = time.time()
+        self.target_refreshes = 0
         self.target_already_on = False
         
-        print(self.circle_type, self.duration)
+        print(self.circle_type, self.duration, self.opacity)
+        
+        #if P.development_mode:
+        #    ring_rotation = 0
+        #    debugging = True
+        #    while debugging:
+        #        fill(WHITE)
+        #        debug_ring = kld.Annulus(self.ring_width, self.ring_stroke, rotation=ring_rotation, fill=GREY)
+        #        angle_num  = message("{0}".format(ring_rotation%360), "alert", blit_txt=False)
+        #        blit(debug_ring, 5, P.screen_c)
+        #        blit(angle_num, 5, P.screen_c)
+        #        flip()
+        #        events = util.pump(True)
+        #        for e in events:
+        #            if e.type == sdl2.SDL_KEYDOWN:
+        #                keypress = e.key.keysym.sym
+        #                if keypress == sdl2.SDLK_RIGHT:
+        #                    ring_rotation += 1
+        #                elif keypress == sdl2.SDLK_LEFT:
+        #                    ring_rotation -= 1
+        #                elif keypress == sdl2.SDLK_x:
+        #                    debugging = False
+        #                elif keypress == sdl2.SDLK_q:
+        #                    self.quit()
+        #                    debugging = False
+                
 
         while self.evm.before('circle_on', True):
             
@@ -229,9 +261,10 @@ class ArticulationCircle(Experiment, BoundaryInspector):
             self.circle_time = time.time() # for debug
         
         if target:
-            line_pos = util.point_pos(P.screen_c, self.circle_radius, self.angle)
-            blit(self.target, 5, line_pos)
+            target_pos = util.point_pos(P.screen_c, self.circle_radius, self.angle)
+            blit(self.target, 5, target_pos)
             self.target_displayed = "yes"
+            self.target_refreshes += 1
         flip()
         
     
@@ -240,7 +273,8 @@ class ArticulationCircle(Experiment, BoundaryInspector):
             print "target on! %.3f" % (self.target_ontime - self.trial_time)
             self.target_already_on = True   
         if not target and self.target_already_on:
-            print "total target on-time: %.3f \n" % (time.time() - self.target_ontime)
+            print "total target on-time: %.3f " % (time.time() - self.target_ontime)
+            print "refreshes: {0} \n".format(self.target_refreshes)
             self.target_already_on = False
 
 
@@ -265,7 +299,8 @@ class ArticulationCircle(Experiment, BoundaryInspector):
         
         wait_for_click = True
         while wait_for_click:
-            for e in util.pump(True):
+            events = util.pump(True)
+            for e in events:
                 if e.type == sdl2.SDL_MOUSEBUTTONUP:
                     pos = [e.button.x, e.button.y]
                     if self.within_boundary("center", pos):
@@ -274,6 +309,24 @@ class ArticulationCircle(Experiment, BoundaryInspector):
                         wait_for_click = False
                         
         util.hide_mouse_cursor()
+        
+    def get_refresh(self, hertz=False):
+        refreshes_start = time.time()
+        refreshes = 0
+        while refreshes <= 50:
+            fill(WHITE)
+            flip()
+            refreshes += 1
+        
+        refreshes_time = time.time() - refreshes_start
+        print(refreshes_time)
+        msec_per_flip = (refreshes_time / refreshes)*1000
+        refresh_rate = 1000 / msec_per_flip
+        
+        if hertz:
+            return refresh_rate
+        else:
+            return msec_per_flip
                     
                         
     def line(self, rotation, canvas_width, stroke):
