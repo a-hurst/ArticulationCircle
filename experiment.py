@@ -1,6 +1,6 @@
-import klibs
-
 __author__ = "A Hurst"
+
+# Import required KLibs functions and objects
 
 from klibs.KLConstants import *
 from klibs import P
@@ -11,56 +11,52 @@ from klibs.KLGraphics import KLDraw as kld
 from klibs.KLGraphics import aggdraw_to_numpy_surface, fill, flip, blit, clear
 from klibs.KLGraphics.KLNumpySurface import NumpySurface as npsurf
 from klibs.KLEventInterface import TrialEventTicket as ET
-#from klibs.KLEventInterface import EventManager as evm
 from klibs.KLBoundary import BoundaryInspector
 from klibs.KLCommunication import message
 from klibs import Experiment
 
+# Import other required libraries
+
 import random
 import math
 import time # for debugging missing targets
-import aggdraw # only because lines aren't working
+import aggdraw # for drawing articulations in single texture
+import sdl2
 
+# Define some useful constants and colours for the experiment
 
 GREY = [128,128,128,255]
 DARKGREY = [64,64,64,255]
 LIGHTGREY = [192,192,192,255]
 WHITE = [255,255,255,255]
-BLACK_HIGH = [0,0,0,64]
-BLACK_MED  = [0,0,0,32]
-BLACK_LOW  = [0,0,0,24]
+#BLACK_HIGH = [0,0,0,64]
+#BLACK_MED  = [0,0,0,32]
+#BLACK_LOW  = [0,0,0,24]
 TOMATO_RED = [255,99,71,255]
 TOMATO_RED_LOW = [255,99,71,32]
+
+OPACITY_MIN = 12
+OPACITY_MAX = 48
+TARGET_DUR_MIN = (1000.0/60)*2 # 33.333ms
+TARGET_DUR_MAX = (1000.0/60)*6 # 100ms
 
 circle_radius = 8
 default_stroke = 0.1
 ring_stroke = 0.55
 
 
+
 class ArticulationCircle(Experiment, BoundaryInspector):    
-    fixation = None
-    circle = None
-    circle_outline = None
-    target = None
-    lines = []
-    response_circle = None
-    next_trial_circle = None
-    response = None
-    trial_time = None
-    target_already_on = None
-    start_time = None
-    elapsed = None
-    deg_err = None
-    angle = None
-    
+        
     debug_mode = False
 
     def __init__(self, *args, **kwargs):
         Experiment.__init__(self, *args)
         BoundaryInspector.__init__(self)      
         
-    def setup(self):    
-        P.key_maps['articulation_circle_response'] = KeyMap('articulation_circle_response', [], [], [])
+    def setup(self):
+        
+        # Determine stimulus sizes
         
         self.circle_radius = util.deg_to_px(circle_radius)
         self.ring_radius   = util.deg_to_px(circle_radius + ring_stroke/2)
@@ -68,107 +64,110 @@ class ArticulationCircle(Experiment, BoundaryInspector):
         self.ring_width    = self.ring_radius * 2
         
         # ensure default stroke isn't lopsided by rounding it up to nearest multiple of 2
-        self.default_stroke = int(math.ceil(float(util.deg_to_px(default_stroke)) / 2.0) * 2)
-        self.ring_stroke    = int(math.ceil(float(util.deg_to_px(ring_stroke)) / 2.0) * 2)
+        self.default_stroke = int(math.ceil(util.deg_to_px(default_stroke) / 2.0) * 2)
+        self.ring_stroke    = int(math.ceil(util.deg_to_px(ring_stroke) / 2.0) * 2)
         self.articulation_len = 3 * (self.ring_stroke + self.default_stroke)
         
         self.fixation_width = util.deg_to_px(0.65)
         self.target_width = util.deg_to_px(0.25)
         self.nexttrial_width = util.deg_to_px(0.5)
         
+        # Create Stimulus Drawbjects
+        
         self.fixation = kld.FixationCross(self.fixation_width, self.default_stroke, fill=DARKGREY).render()
         self.fixation_light = kld.FixationCross(self.fixation_width, self.default_stroke, fill=LIGHTGREY).render()
-        
         self.circle = kld.Annulus(self.ring_width, self.ring_stroke, fill=WHITE).render()
         self.circle_outline = kld.Annulus(self.ring_width + self.default_stroke, self.ring_stroke + self.default_stroke, fill=DARKGREY).render()
-        
-        for angle in [0, 45, 90, -45]:
-            if angle == 0:
-                angles = [0, 180]
-            if angle == 45:
-                angles = [45, 225]
-            if angle == 90:
-                angles = [90, 270]
-            if angle == -45:
-                angles = [135, 325]
-            line = self.line(angle, self.articulation_len, [(64,64,64), self.default_stroke]).render()
-            for a in angles:
-                self.lines.append([line, util.point_pos(P.screen_c, self.circle_width / 2.0, a)])
-                
-        self.target_high = kld.Asterisk(self.target_width, color=BLACK_HIGH, stroke=self.default_stroke).render()
-        self.target_med  = kld.Asterisk(self.target_width, color=BLACK_MED,  stroke=self.default_stroke).render()
-        self.target_low  = kld.Asterisk(self.target_width, color=BLACK_LOW,  stroke=self.default_stroke).render()
-        
+        self.articulations = self.draw_articulations(8, self.articulation_len, self.circle_radius, self.default_stroke/2)
         self.response_ring = kld.Annulus(self.ring_width, self.ring_stroke, fill=GREY)
-        
         self.next_trial_circle = kld.Ellipse(self.nexttrial_width, fill=DARKGREY)
+        
+        # Define boundary for the next-trial circle
+        
         self.add_boundary("center", [P.screen_c, self.nexttrial_width], CIRCLE_BOUNDARY)
         
-        self.fliptime = (self.get_refresh(rep=30) + self.get_refresh(rep=30) + self.get_refresh(rep=30))/3
-        print ""
-        print "Refresh Rate: {:.1f} Hz".format(1000/self.fliptime)
-        print "Time per refresh: {:.2f}ms".format(self.fliptime)
-        print ""
+        # Define range of possible target durations based on refresh rate
         
-        # sizes
+        self.target_flips_range = int(round((TARGET_DUR_MAX-TARGET_DUR_MIN) / P.refresh_time))
         
-        print("circle_width:", self.circle_width)
-        print("ring_width:", self.ring_width)
-        print("ring_thickness:", self.ring_stroke)
-        print("outer_ring_thickness:", self.ring_stroke + self.default_stroke)
-        print("target_size:", util.px_to_deg(10))
-        print("default_stroke:", self.default_stroke)
-        print("articulation_length:", util.px_to_deg(70))
-        print("")
+        # If in development mode, print refresh info and stimulus sizes
+        
+        if P.development_mode:
+            
+            print("\nRefresh Rate: {:.1f} Hz".format(P.refresh_rate))
+            print("Time per refresh: {:.2f}ms\n".format(P.refresh_time))
+            
+            print("circle_width:", self.circle_width)
+            print("ring_width:", self.ring_width)
+            print("ring_thickness:", self.ring_stroke)
+            print("outer_ring_thickness:", self.ring_stroke + self.default_stroke)
+            print("target_size:", util.px_to_deg(10))
+            print("default_stroke:", self.default_stroke)
+            print("articulation_length:", util.px_to_deg(70))
+            print("")
 
     def block(self):
         pass
 
     def setup_response_collector(self):
-        self.rc.display_callback = self.articulation_callback
-        self.rc.terminate_after = [10, TK_S]
         self.rc.uses([RC_COLORSELECT])
+        self.rc.terminate_after = [10, TK_S]
+        self.rc.display_callback = self.articulation_callback
         self.rc.color_listener.interrupts = True
-        self.rc.color_listener.add_boundary("color ring", [P.screen_c, self.ring_radius - self.ring_stroke, self.ring_radius], ANNULUS_BOUNDARY)
-        self.rc.color_listener.set_target(self.response_ring, P.screen_c, 5)
+        self.rc.color_listener.set_wheel(self.response_ring)
 
     def trial_prep(self):
-        events = [[400-self.fliptime, 'circle_on']]
+		
+        # Define timecourse of events for the trial
+        
+        self.target_duration = TARGET_DUR_MIN + (random.choice(range(0, self.target_flips_range+1, 1)) * P.refresh_time)
+
+        events = [[400-P.refresh_time, 'circle_on']]
         events.append([events[-1][0] + 600, 'target_on']) 
-        events.append([events[-1][0] + int(self.duration), 'target_off'])
+        events.append([events[-1][0] + self.target_duration, 'target_off'])
         events.append([events[-1][0] + 1000, 'response_circle_on'])
         for e in events:
             self.evm.register_ticket(ET(e[1], e[0]))
-            
+        
+        # Randomly select angle of target for the trial, and configure response collector accordingly
+        
         self.angle = random.choice(range(0, 360, 1))
         self.response_ring.rotation = self.angle
-        self.target = self.target_high if self.opacity == "high" else self.target_med if self.opacity == "med" else self.target_low
-        self.circle_already_on = False
+        self.target_pos = util.point_pos(P.screen_c, self.circle_radius, -90, self.angle)
+        self.rc.color_listener.set_target(self.target_pos)
+		
+        # Initialize target asterisk with random opacity within range
         
-        # enter trial with screen already at desired state
-        fill(WHITE)
+        self.target_opacity = random.choice(range(OPACITY_MIN, OPACITY_MAX+1, 1))
+        target_colour = (0, 0, 0, self.target_opacity)
+        self.target = kld.Asterisk(self.target_width, color=target_colour, stroke=self.default_stroke).render()
+        
+        # Reset debug flags before trial starts
+        
+        self.circle_already_on = False
+        self.target_already_on = False
+        self.target_refreshes = 0
+        
+        # Enter trial with screen already at desired state
+        
+        fill()
         blit(self.fixation_light, 5, P.screen_c)
         flip()
         
         
     def trial(self):
-        self.trial_time = time.time()
-        self.target_refreshes = 0
-        self.target_already_on = False
         
-        print(self.circle_type, self.duration, self.opacity)
-                        
+        self.trial_time = time.time()        
+        print(self.circle_type, self.target_duration, self.target_opacity)
 
         while self.evm.before('circle_on', True):
-            
-            fill(WHITE)
+            fill()
             blit(self.fixation_light, 5, P.screen_c)
             flip()
             
         while self.evm.before('response_circle_on', True):
-            
             self.start_time = time.time()
-            target_on = self.evm.after('target_on', True) and self.evm.before('target_off', True)
+            target_on = self.evm.after('target_on') and self.evm.before('target_off')
             circle_on = self.circle_type != "none"
             lines_on = self.circle_type == "articulated"
             self.display_refresh(circle_on, lines_on, target_on)
@@ -182,39 +181,27 @@ class ArticulationCircle(Experiment, BoundaryInspector):
                 if circle_on:
                     print "circle: %.3f" % (self.circle_time - self.trial_time)
                 print "total: %.3f" % (self.elapsed)
-                    
         
-        clear(WHITE)
-        
-        blit(self.fixation, 5, P.screen_c)
-        blit(self.response_ring, 5, P.screen_c) # necessary due to some weird antialiasing issue.
-        flip()
-        if P.development_mode:
-            any_key() # to debug antialiasing issue with response ring
-        blit(self.fixation, 5, P.screen_c)
-        blit(self.response_ring, 5, P.screen_c)
-        self.response_starttime = time.time()
+        # Collect localization response and save response RT and response angle
         self.rc.collect()
-        self.response_rt = time.time() - self.response_starttime
-        
+        self.response_rt = self.rc.color_listener.response(False, True)
         self.response = self.rc.color_listener.response(True, False)
-
         try:
-            self.deg_err = self.response if self.response < 180 else self.response - 360
             self.response_loc = (self.angle + self.deg_err) % 360
         except TypeError:
-            self.deg_err = NA
             self.response_loc = NA
+        print "Response accuracy: %.1f" % self.deg_err
         
+        # Require participant to click center of screen to continue to next trial
         self.click_to_continue()
 
         return {
             "block_num": P.block_number,
             "trial_num": P.trial_number,
             "circle_type": self.circle_type,
-            "opacity": self.opacity,
-            "duration": self.duration,
-            "rt": self.response_rt, #self.rc.color_listener.response(False, True),
+            "opacity": self.target_opacity,
+            "duration": str(self.target_duration),
+            "rt": self.response_rt,
             "target_refreshes": self.target_refreshes,
             "target_loc": self.angle,
             "response_loc": self.response_loc,
@@ -222,13 +209,12 @@ class ArticulationCircle(Experiment, BoundaryInspector):
         }
     
     def display_refresh(self, circle=False, lines=False, target=False): 
-        fill(WHITE)
+        fill()
         blit(self.fixation, 5, P.screen_c)
         self.init_time = time.time() # for debug
         
         if lines:
-            for l in self.lines:
-                blit(l[0], 5, l[1])
+            blit(self.articulations, 5, P.screen_c)
             self.line_time = time.time() # for debug
 
         if circle:
@@ -237,8 +223,7 @@ class ArticulationCircle(Experiment, BoundaryInspector):
             self.circle_time = time.time() # for debug
         
         if target:
-            target_pos = util.point_pos(P.screen_c, self.circle_radius, self.angle)
-            blit(self.target, 5, target_pos)
+            blit(self.target, 5, self.target_pos)
             self.target_refreshes += 1
         flip()
         
@@ -262,78 +247,47 @@ class ArticulationCircle(Experiment, BoundaryInspector):
 
     def clean_up(self):
         pass
-
-
-    def articulation_callback(self):
-        flip()
         
         
     def click_to_continue(self):        
-        fill(WHITE)
-        blit(self.next_trial_circle, 5, P.screen_c)
-        flip()
-        
         util.show_mouse_cursor()
-        
         wait_for_click = True
         while wait_for_click:
+            fill()
+            blit(self.next_trial_circle, 5, P.screen_c)
+            flip()
             events = util.pump(True)
+            ui_request(queue=events)
             for e in events:
                 if e.type == sdl2.SDL_MOUSEBUTTONUP:
-                    pos = [e.button.x, e.button.y]
+                    pos = (e.button.x, e.button.y)
                     if self.within_boundary("center", pos):
-                        fill(WHITE)
+                        fill()
                         flip()
-                        wait_for_click = False
-                        
+                        wait_for_click = False      
         util.hide_mouse_cursor()
         
-    def get_refresh(self, hertz=False, rep=50):
-        refreshes_start = time.time()
-        refreshes = 0
-        while refreshes <= rep:
-            fill(WHITE)
-            blit(self.fixation, 5, P.screen_c)
-            for l in self.lines:
-                blit(l[0], 5, l[1])
-            blit(self.circle_outline, 5, P.screen_c)
-            blit(self.circle, 5, P.screen_c)
-            flip()
-            refreshes += 1
+    
+    def draw_articulations(self, count, length, radius, thickness):
+        canvas_size = radius * 2 + length
+        canvas_c = (canvas_size // 2.0, canvas_size // 2.0)
+        half_len = length // 2.0
+        theta = 360.0 // count
         
-        refreshes_time = time.time() - refreshes_start
-        print(refreshes_time)
-        msec_per_flip = (refreshes_time / refreshes)*1000
-        refresh_rate = 1000 / msec_per_flip
+        canvas = aggdraw.Draw("RGBA", [canvas_size, canvas_size], (0, 0, 0, 0))
+        pen = aggdraw.Pen(tuple(DARKGREY[:3]), thickness, 255)
+        canvas.setantialias(True)
         
-        if hertz:
-            return refresh_rate
-        else:
-            return msec_per_flip
-                    
-                        
-    def line(self, rotation, canvas_width, stroke):
-        start = (0, 0)
-        end = (canvas_width, canvas_width)
+        for i in range(0, count):
+            start = util.point_pos(canvas_c, radius-half_len-1, angle=theta*i)
+            end = util.point_pos(canvas_c, radius+half_len-1, angle=theta*i)
+            canvas.line((start[0], start[1], end[0], end[1]), pen)
         
-        canvas_center = (canvas_width // 2, canvas_width // 2)
-        surface_width = canvas_width
+        return aggdraw_to_numpy_surface(canvas)
         
-        if rotation % 90 != 0:
-            start = util.point_pos(canvas_center, canvas_width // 2, rotation)
-            end = util.point_pos(canvas_center, canvas_width // 2, rotation - 180)
-        if rotation in [90, 270]:
-            start = (canvas_width // 2, 0)
-            end = (canvas_width // 2, canvas_width)
-        if rotation in [0, 180]:
-            start = (0, canvas_width // 2)
-            end = (canvas_width, canvas_width // 2)
         
-        surf = aggdraw.Draw("RGBA", [canvas_width, canvas_width], (0, 0, 0, 0))
-        surf.setantialias(True)
-        p_str = "M{0} {1} L{2} {3}".format(*start+end)
-        sym = aggdraw.Symbol(p_str)
-        surf.symbol((0, 0), sym, aggdraw.Pen(*stroke))
-        line_numpy = aggdraw_to_numpy_surface(surf)
-        return line_numpy
-        
+    def articulation_callback(self):
+        fill()
+        blit(self.fixation, 5, P.screen_c)
+        blit(self.response_ring, 5, P.screen_c)
+        flip()
