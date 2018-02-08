@@ -42,8 +42,8 @@
         {
             "title": "sex",
             "database_field": "sex",
-            "query": "What is your sex? \nAnswer with:  (m)ale,(f)emale",
-            "accepted": ["m", "f"],
+            "query": "What is your sex? \nAnswer with:  (m)ale, (f)emale, (o)ther",
+            "accepted": ["m", "f", "o"],
             "format": {
                 "type": "str",
                 "styles": {

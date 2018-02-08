@@ -35,8 +35,8 @@ WHITE = [255,255,255,255]
 TOMATO_RED = [255,99,71,255]
 TOMATO_RED_LOW = [255,99,71,32]
 
-OPACITY_MIN = 12
-OPACITY_MAX = 48
+BRIGHTNESS_MIN = 207
+BRIGHTNESS_MAX = 243
 TARGET_DUR_MIN = (1000.0/60)*2 # 33.333ms
 TARGET_DUR_MAX = (1000.0/60)*6 # 100ms
 
@@ -138,9 +138,9 @@ class ArticulationCircle(Experiment, BoundaryInspector):
 		
         # Initialize target asterisk with random opacity within range
         
-        self.target_opacity = random.choice(range(OPACITY_MIN, OPACITY_MAX+1, 1))
-        target_colour = (0, 0, 0, self.target_opacity)
-        self.target = kld.Asterisk(self.target_width, color=target_colour, stroke=self.default_stroke).render()
+        self.target_brightness = random.choice(range(BRIGHTNESS_MIN, BRIGHTNESS_MAX+1, 1))
+        target_colour = [self.target_brightness]*3 + [255]
+        self.target = kld.Asterisk(self.target_width, fill=target_colour, thickness=self.default_stroke).render()
         
         # Reset debug flags before trial starts
         
@@ -158,7 +158,7 @@ class ArticulationCircle(Experiment, BoundaryInspector):
     def trial(self):
         
         self.trial_time = time.time()        
-        print(self.circle_type, self.target_duration, self.target_opacity)
+        print(self.circle_type, self.target_duration, self.target_brightness)
 
         while self.evm.before('circle_on', True):
             fill()
@@ -185,7 +185,7 @@ class ArticulationCircle(Experiment, BoundaryInspector):
         # Collect localization response and save response RT and response angle
         self.rc.collect()
         self.response_rt = self.rc.color_listener.response(False, True)
-        self.response = self.rc.color_listener.response(True, False)
+        self.deg_err = self.rc.color_listener.response(True, False)
         try:
             self.response_loc = (self.angle + self.deg_err) % 360
         except TypeError:
@@ -199,7 +199,7 @@ class ArticulationCircle(Experiment, BoundaryInspector):
             "block_num": P.block_number,
             "trial_num": P.trial_number,
             "circle_type": self.circle_type,
-            "opacity": self.target_opacity,
+            "target_brightness": self.target_brightness,
             "duration": str(self.target_duration),
             "rt": self.response_rt,
             "target_refreshes": self.target_refreshes,

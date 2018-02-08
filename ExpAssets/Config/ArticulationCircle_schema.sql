@@ -67,7 +67,7 @@ CREATE TABLE trials (
 	block_num integer not null,
 	trial_num integer not null,
 	circle_type text not null,
-	opacity text not null,
+	target_brightness text not null,
 	duration text not null,
 	rt text not null,
 	target_refreshes integer not null,
