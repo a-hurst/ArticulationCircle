@@ -16,7 +16,8 @@ labjacking = False
 #########################################
 default_fill_color = (255, 255, 255, 255)
 default_color = (0, 0, 0, 255)
-default_font_size = 28
+default_font_size = 23
+default_font_unit = 'px'
 default_font_name = 'Frutiger'
 
 #########################################
@@ -31,7 +32,7 @@ saccadic_motion_threshold = 0.15
 #########################################
 view_distance = 57
 multi_session_project = True
-collect_demographics = False
+collect_demographics = True
 practicing = False
 trials_per_block = 18
 blocks_per_experiment = 8

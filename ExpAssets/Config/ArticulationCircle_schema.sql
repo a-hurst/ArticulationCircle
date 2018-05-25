@@ -35,7 +35,7 @@ CREATE TABLE participants (
 	id integer primary key autoincrement not null,
 	userhash text not null,
 	random_seed text not null,
-	sex text not null,
+	gender text not null,
 	age integer not null, 
 	handedness text not null,
 	created text not null,
@@ -43,30 +43,13 @@ CREATE TABLE participants (
 
 );
 
-CREATE TABLE events (
-	id integer primary key autoincrement not null,
-	user_id integer not null,
-	trial_id integer not null,
-	trial_num integer not null,
-	label text not null,
-	trial_clock float not null,
-	eyelink_clock integer
-);
-
-CREATE TABLE logs (
-	id integer primary key autoincrement not null,
-	user_id integer not null,
-	message text not null,
-	trial_clock float not null,
-	eyelink_clock integer
-);
-
 CREATE TABLE trials (
 	id integer primary key autoincrement not null,
 	participant_id integer key not null,
 	block_num integer not null,
 	trial_num integer not null,
-	circle_type text not null,
+	trial_articulations text not null,
+	response_articulations text not null,
 	target_brightness text not null,
 	duration text not null,
 	rt text not null,
