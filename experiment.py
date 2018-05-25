@@ -97,7 +97,14 @@ class ArticulationCircle(Experiment, BoundaryInspector):
             print("")
 
     def block(self):
-        pass
+        if P.block_number == int(math.ceil(P.blocks_per_experiment/2.0))+1:
+			util.flush()
+			msg_text = "Whew! You're halfway done.\nTake a break, then press any key to continue."
+			msg = message(msg_text, align="center", blit_txt=False)
+			fill()
+			blit(msg, registration=5, location=P.screen_c)
+			flip()
+			any_key()
 
     def setup_response_collector(self):
         self.rc.uses([RC_COLORSELECT])
@@ -123,7 +130,7 @@ class ArticulationCircle(Experiment, BoundaryInspector):
         self.response_ring.rotation = self.angle
         self.target_pos = util.point_pos(P.screen_c, self.circle_radius, -90, self.angle)
         self.rc.color_listener.set_target(self.target_pos)
-		
+        
         # Initialize target asterisk with random opacity within range
         
         self.target_brightness = random.choice(range(BRIGHTNESS_MIN, BRIGHTNESS_MAX+1, 1))

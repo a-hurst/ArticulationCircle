@@ -34,8 +34,8 @@ view_distance = 57
 multi_session_project = True
 collect_demographics = True
 practicing = False
-trials_per_block = 18
-blocks_per_experiment = 8
+trials_per_block = 48
+blocks_per_experiment = 6
 trials_per_participant = 0
 table_defaults = {}
 #

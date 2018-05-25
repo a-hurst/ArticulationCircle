@@ -1,8 +1,10 @@
-example.log
-.DS_Store
-**/.DS_Store
-ExpAssets/.versions
 **/*.pyc
-**/*.db
-**/*.db.backup
-ExpAssets/Local/*
+**/.*
+!.gitignore
+ExpAssets/*.db
+ExpAssets/*.db.backup
+ExpAssets/Data/**
+ExpAssets/EDF/**
+ExpAssets/.versions/**
+ExpAssets/Local
+ExpAssets/Local/**

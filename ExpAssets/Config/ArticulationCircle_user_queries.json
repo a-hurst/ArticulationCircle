@@ -10,6 +10,7 @@
             "database_field": "userhash",
             "query": "'What is your full name, banner number or e-mail address? \nYour answer will be encrypted and cannot be read later.'",
             "accepted": null,
+			"allow_null": false,
             "format": {
                 "type": "str",
                 "styles": {
@@ -29,7 +30,7 @@
                         "error": "auto"
                     }
                 },
-                "password": false,
+                "password": true,
                 "range": null,
                 "case_sensitive": true,
                 "accept_as_true": null,
@@ -63,7 +64,7 @@
                         "error": "auto"
                     }
                 },
-                "password": true,
+                "password": false,
                 "range": null,
                 "case_sensitive": false,
                 "accept_as_true": null,
@@ -78,6 +79,7 @@
             "database_field": "handedness",
             "query": "Are right-handed, left-handed or ambidextrous? \nAnswer with (r)ight, (l)eft or (a)mbidextrous.",
             "accepted": ["r", "l", "a"],
+			"allow_null": false,
             "format": {
                 "type": "str",
                 "styles": {
@@ -112,6 +114,7 @@
             "database_field": "age",
             "query": "What is your age?",
             "accepted": null,
+			"allow_null": false,
             "format": {
                 "type": "int",
                 "styles": {
@@ -131,7 +134,7 @@
                         "error": "auto"
                     }
                 },
-                "password": true,
+                "password": false,
                 "range": [0, 125],
                 "case_sensitive": null,
                 "accept_as_true": null,
