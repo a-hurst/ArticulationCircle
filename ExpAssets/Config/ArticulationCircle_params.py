@@ -51,8 +51,8 @@ dm_ignore_local_overrides = False
 # Data Export Settings
 #########################################
 data_columns = None
-default_participant_fields = [["userhash", "participant"], "sex", "age", "handedness"]
-default_participant_fields_sf = [["userhash", "participant"], "random_seed", "sex", "age", "handedness"]
+default_participant_fields = [["userhash", "participant"], "gender", "age", "handedness"]
+default_participant_fields_sf = [["userhash", "participant"], "random_seed", "gender", "age", "handedness"]
 
 #
 #########################################

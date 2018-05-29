@@ -115,10 +115,12 @@ class ArticulationCircle(Experiment, BoundaryInspector):
 
     def trial_prep(self):
 		
-        # Define timecourse of events for the trial       
+        # Define timecourse of events for the trial
+             
+        target_on = random.choice(range(500, 2050, 50))
 
         events = [[400-P.refresh_time, 'lines_on']]
-        events.append([events[-1][0] + 600, 'target_on']) 
+        events.append([events[-1][0] + target_on, 'target_on']) 
         events.append([events[-1][0] + self.duration, 'target_off'])
         events.append([events[-1][0] + 1000, 'response_circle_on'])
         for e in events:
@@ -135,8 +137,9 @@ class ArticulationCircle(Experiment, BoundaryInspector):
         
         self.target_brightness = random.choice(range(BRIGHTNESS_MIN, BRIGHTNESS_MAX+1, 1))
         target_colour = [self.target_brightness]*3 + [255]
-        self.target = kld.Asterisk(self.target_width, fill=target_colour, thickness=self.default_stroke/2).render()
-        
+        #self.target = kld.Asterisk(self.target_width, fill=target_colour, thickness=self.default_stroke/2).render()
+        self.target = kld.Ellipse(self.target_width, fill=target_colour).render()
+
         # Reset debug flags before trial starts
         
         self.circle_already_on = False
@@ -257,26 +260,24 @@ class ArticulationCircle(Experiment, BoundaryInspector):
         half_len = length / 2.0
         theta = 360.0 / count
         
-        canvas = Image.new("RGBA", [canvas_size, canvas_size], (255, 255, 255, 0))
-        surface = aggdraw.Draw(canvas)
-        surface.setantialias(True)
-        pen = aggdraw.Pen(tuple(LIGHTGREY[:3]), line_thickness, 255)
+        canvas = Image.new("RGB", [canvas_size, canvas_size], tuple(LIGHTGREY[:3]))
+        mask = Image.new('L', [canvas_size, canvas_size], 0)
+        mask_surf = aggdraw.Draw(mask)
+
+        line_pen = aggdraw.Pen(255, line_thickness)
+        ring_pen = aggdraw.Pen(0, ring_thickness)
+        transparent_brush = aggdraw.Brush((255, 0, 0), 0)
         
         # Draw articulations
         for i in range(0, count):
             start = util.point_pos(canvas_c, radius-half_len, angle=theta*i)
             end = util.point_pos(canvas_c, radius+half_len, angle=theta*i)
-            surface.line((start[0], start[1], end[0], end[1]), pen)
-        surface.flush()
+            mask_surf.line((start[0], start[1], end[0], end[1]), line_pen)
         
         # Draw ring mask for articulations
-        mask = Image.new('L', [canvas_size, canvas_size], 255)
-        mask_surf = aggdraw.Draw(mask)
         xy_1 = canvas_c[0] - radius
         xy_2 = canvas_c[0] + radius
-        path_pen = aggdraw.Pen(0, ring_thickness)
-        transparent_brush = aggdraw.Brush((255, 0, 0), 0)
-        mask_surf.ellipse([xy_1, xy_1, xy_2, xy_2], path_pen, transparent_brush)
+        mask_surf.ellipse([xy_1, xy_1, xy_2, xy_2], ring_pen, transparent_brush)
         mask_surf.flush()
         
         # Apply ring mask to articulations
